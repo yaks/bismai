@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta content="微信营销、微信代运营、微信定制开发、微信托管、微网站、微商城、微营销" name="Keywords">
+<meta content="国内最大的微信公众智能服务平台，八大微体系：微菜单、微官网、微会员、微活动、微商城、微推送、微服务、微统计，企业微营销必备。" name="Description">
+<link rel="stylesheet" type="text/css" href="{iMicms::RES}/css/bootstrap_min.css" media="all" />
+<link rel="stylesheet" type="text/css" href="{iMicms::RES}/css/bootstrap_responsive_min.css" media="all" />
+<link rel="stylesheet" type="text/css" href="{iMicms::RES}/css/sstyle.css" media="all" />
+<link rel="stylesheet" type="text/css" href="{iMicms::RES}/css/todc_bootstrap.css" media="all" />
+<link rel="stylesheet" type="text/css" href="{iMicms::RES}/css/themes.css" media="all" />
+<link rel="stylesheet" type="text/css" href="{iMicms::RES}/css/inside.css" media="all" />
+<script type="text/javascript" src="{iMicms::RES}/js/jQuery.js"></script>
+<script type="text/javascript" src="{iMicms::RES}/js/bootstrap_min.js"></script>
+<script type="text/javascript" src="{iMicms::RES}/js/inside.js"></script>
+<title>{iMicms::C('site_name')}-{iMicms::C('site_title')}</title>
+    <link rel="shortcut icon" href="/tpl/Static/favicon.ico" />
+    <!--[if lte IE 9]><script src="{iMicms::RES}/js/watermark.js"></script><![endif]-->
+	<!--[if IE 7]><link href="{iMicms::RES}/css/font_awesome_ie7.css" rel="stylesheet" /><![endif]-->
+</head>
+<body>
+ 
+	<div id="main">
+        <div class="row-fluid">
+            <div class="span12">
+                <div class="box ">
+                    <div class="box-title">
+                        <h3><i class="icon-user"></i>账户信息</h3>
+                    </div>
+                    <div class="box-content">
+
+                        <dl class="dl-horizontal">
+                            <dt>
+                                <img src="{iMicms:$info.headerpic}" style="width: 88px; height: 88px" class="img-rounded"></dt>
+                            <dd>
+                                <p><strong>微信号:{iMicms:$info.weixin}</strong>：<b class="text-warning">{iMicms:$userg['name']}</b>  <a href="http://wpa.qq.com/msgrd?v=3&uin={iMicms::C('site_qq')}&site=qq&menu=yes" target="_blank"><i class="icon-arrow-up" title="升级"></i>升级</a></p>
+
+
+
+                                <table class="table noborder">
+								                                    <tr>
+                                        <td>套餐有效期：{iMicms:$thisUser.viptime|date="Y-m-d",###}</td>
+                                        <td>活动自定义：{iMicms:$Think.session.activitynum}/{iMicms:$userinfo.activitynum}</td>
+                                        <td>图文自定义：{iMicms:$thisUser.diynum}/{iMicms:$userinfo.diynum}</td>
+                                        <td>公众号配额：{iMicms:$total}/{iMicms:$userinfo.gongzhongnum}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>请求数剩余：
+					 <php>echo ($userinfo['connectnum'] - $_SESSION['connectnum'])</php>										</td>
+                                        <td>总请求数：<php>echo $_SESSION['diynum'];</php></td>
+                                        <td>本月请求数：<php>echo $_SESSION['connectnum']</php></td>
+                                        <td>每月可请求总数：{iMicms:$userinfo.connectnum}</td>
+                                    </tr>
+                                </table>
+								<p><strong>接口地址：</strong>{iMicms::C('site_url')}/index.php/api/{iMicms:$token}&nbsp;&nbsp;&nbsp;&nbsp;
+								<strong>TOKEN：</strong>{iMicms:$token}</p>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+</body>
+</html>

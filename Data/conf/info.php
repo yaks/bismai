@@ -1,0 +1,22 @@
+<?php 
+return array (
+  'site_name' => '比斯迈科技',
+  'site_title' => '微信公众服务平台',
+  'site_url' => 'http://home.bismai.com',
+  'site_my' => '比斯迈',
+  'ischeckuser' => '1',
+  'user_first_grade' => '4',
+  'user_first_grade_time' => '30',
+  'ipc' => '粤IPC备1403815号',
+  'telephone' => '0755-86250950  0755-86317065',
+  'site_qq' => '2358053054',
+  'site_qq1' => '2358053054',
+  'site_email' => '',
+  'baidu_map_api' => '827cb057f915c64da0b23a3bed5afe84',
+  'site_lxdz' => '广东省深圳市南山区西海明珠大厦',
+  'site_youbian' => '518054',
+  'keyword' => '微信公众账号 微信公众平台 微信公众账号开发 微信营销 微信公众平台接口开发',
+  'content' => '微信、公众平台接口开发、托管、营销活动、二次开发',
+  'counts' => '',
+  'copyright' => '由bismai提供技术支持',
+);

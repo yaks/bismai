@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>权限管理</title>
+</head>
+<body>
+<script src="./tpl/User/default/common/js/date/WdatePicker.js"></script>
+<include file="common:public" />
+<div class="cr"></div>
+<div id="artlist">
+
+	 <div class="ksearch">
+    	<div class="fl">
+			<form action="{iMicms::U('Users/search')}" method="post">
+			<b class="kserico">快速搜索：</b>搜索类型：
+			<select name="type">
+				<option value="1" <if condition="$Type eq 1">selected</if> >用户名称</option>
+				<option value="3"  <if condition="$Type eq 3">selected</if> >联系电话</option>
+				<option value="5"  <if condition="$Type eq 5">selected</if> >用户邮箱</option>
+				
+			</select> 
+			<input name="name" class="ipt" type="text" value=""> 
+			<input type="submit" class="ksub" value="">
+			</form>
+        </div>
+    </div>
+ 	
+</div>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" id="alist">
+	  <tr>
+		<td width="120">用户名称</td>
+		<td width="80">权限组</td>
+		<td width="80">联系电话</td>
+		<td width="150">邮箱</td>
+		<td width="100">最后登录时间</td>
+		<td width="100">注册时间</td>
+		<td width="100">到期时间</td>
+		<td width="100">管理操作</td>
+	  </tr>
+	    <volist name="info" id="vo">
+			<tr>
+				<td >{iMicms:$vo.username}</td>
+				<td >{iMicms:$group[$vo['gid']]}</td>
+				<td >{iMicms:$vo.mobile}</td>
+				<td >{iMicms:$vo.email}</td>				
+                                <td align='center'>{iMicms:$vo['lasttime']}</php></td>
+                                <td align='center'>{iMicms:$vo['createtime']}</php></td>
+				<td align='center'><php>echo date('Y-m-d H:i:s', $vo['viptime'])</php></td>
+				</td>
+				<td align='center'>
+					<a href="{iMicms::U('Users/edit/',array('id'=>$vo['id']))}">修改</a>
+					| <eq name="vo.username" value="admin"><font color="#cccccc">删除</font><else/><a href="javascript:void(0)" onclick="return confirmurl('{iMicms::U('Users/del/',array('id'=>$vo['id']))}','确定删除该用户吗?')">删除</a></eq>
+				</td>
+			</tr>
+	    </volist>
+     <tr bgcolor="#FFFFFF"> 
+      <td colspan="10"><div class="listpage">{iMicms:$page}</div></td>
+    </tr>
+   
+</table>
+
+</body>
+</html>
