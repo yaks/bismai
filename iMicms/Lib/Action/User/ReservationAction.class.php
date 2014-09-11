@@ -1,218 +1,136 @@
 <?php
-
-class ReservationAction extends UserAction{
-    public $addtype;
-   // public $wecha_id;
-    public function _initialize() {
-        parent::_initialize();
-        $this->addtype = $this->_get('addtype');
-
-        $this->assign('addtype',$this->addtype);
-
-
+class RecognitionAction extends UserAction{
+    public function _initialize(){
+        parent :: _initialize();
+        $diymen = M('Diymen_set')->where(array('token'=>$_SESSION['token']))->find();
+        if($diymen == false){
+            $this->error('只有微信官方认证的高级服务号才能使用本功能', '?g=User&m=Index&a=edit&id=' . $this -> thisWxUser['id']);
+        }
     }
-
     public function index(){
-        if(session('gid')==1){
-            $this->error('vip0无法使用预约管理,请充值后再使用',U('Home/Index/price'));
-        }
-
-        $data = M("Reservation");
-        // $car = $this->_get('car');
-        // if($car == 'car'){
-        //     $where = "`token`='".session('token')."' AND (`addtype`='drive' OR `addtype`='maintain')";
-
-        // }else{
-        //    $where = array('token'=>session('token'));
-        // }
-       $where = array('token'=>session('token'),'addtype'=>'house_book');
-        //$reslist =  $data->where($where)->select();
-        $count      = $data->where($where)->count();
-        $Page       = new Page($count,12);
-        $show       = $Page->show();
-        $reslist = $data->where($where)->limit($Page->firstRow.','.$Page->listRows)->select(); 
-        
-        $this->assign('page',$show);
-        $this->assign('reslist',$reslist);
-        $this->display();
-
-    }
-
-    public function add(){
-
-        if(session('gid')==1){
-           $this->error('vip0无法使用预约管理,请充值后再使用',U('Home/Index/price'));
-        }
-        $addtype = $this->_get('addtype');
         if(IS_POST){
-            $data=D('Reservation');
-            $_POST['token']=session('token');
-            $_POST['addtype'] = 'house_book';
-            if($data->create()!=false){
-                if($id=$data->data($_POST)->add()){
-                    $data1['pid']=$id;
-                    $data1['module']='Reservation';
-                    $data1['token']=session('token');
-                    $data1['keyword']=trim($_POST['keyword']);
-                    M('Keyword')->add($data1);
-                    //$user=M('Users')->where(array('id'=>session('uid')))->setInc('activitynum');
-                    if($addtype == 'drive'){
-                        $this->success('添加成功',U('Car/drive',array('token'=>session('token'))));
-                    }elseif($addtype == 'maintain'){
-                        $this->success('添加成功',U('Car/maintain',array('token'=>session('token'))));
-                    }else{
-                        $this->success('添加成功',U('Reservation/index',array('token'=>session('token'))));
-                    }
-                }else{
-                    $this->error('服务器繁忙,请稍候再试');
-                }
-            }else{
-                $this->error($data->getError());
-            }
+            $this -> all_insert('Recognition');
         }else{
+            $db = D('Recognition');
+            $where = array('token'=>session('token'));
+            $count = $db->where($where)->count();
+            $page = new Page($count, 25);
+            $list = $db->where($where)->limit($page->firstRow.','.$page->listRows)->order('id desc')->select();
+            $listDb = D('Recognition_group_list');
+            foreach ($list as $key => $value) {
+                $where['rid'] = $value['id'];
+                $sum = $listDb->where($where)->sum('attention_num');
+                $list[$key]['attention_num'] = $sum?(int)$sum:0;
+            }
+
+            $this->assign('page', $page->show());
+            $this->assign('list', $list);
             $this->display();
         }
-
-
     }
+    public function group_list(){
+        $rid=(int)$this->_get('rid','trim');
+        $db = D('Recognition_group_list');
+        $where['rid'] = $rid;
 
-    public function edit(){
-
-         if(IS_POST){
-            $data=D('reservation');
-            $where=array('id'=>(int)$this->_post('id'),'token'=>session('token'));
-            $check=$data->where($where)->find();
-            if($check==false)$this->error('非法操作');
-
-
-            if($data->create()){
-                $_POST['addtype'] = 'house_book';
-                if($data->where($where)->save($_POST)){
-                    $data1['pid']=(int)$this->_post('id');
-                    $data1['module']='Reservation';
-                    $data1['token']=session('token');
-
-                    $da['keyword']=trim($_POST['keyword']);
-                    M('Keyword')->where($data1)->save($da);
-                    $this->success('修改成功',U('Reservation/index',array('token'=>session('token'))));
-                }else{
-                    $this->error('操作失败');
-                }
-            }else{
-                $this->error($data->getError());
-            }
-        }else{
-            $id=$this->_get('id');
-            $where=array('id'=>$id,'token'=>session('token'));
-            $data=M('Reservation');
-            $check=$data->where($where)->find();
-            if($check==false)$this->error('非法操作');
-            $reslist=$data->where($where)->find();
-            $this->assign('reslist',$reslist);
-            $this->display('add');
-        }
-    }
-
-    public function del(){
-        $id = (int)$this->_get('id');
-        $res = M('Reservation');
-        $find = array('id'=>$id,'token'=>$this->_get('token'));
-        $result = $res->where($find)->find();
-         if($result){
-            $res->where('id='.$result['id'])->delete();
-            $where = array('pid'=>$result['id'],'module'=>'Reservation','token'=>session('token'));
-            M('Keyword')->where($where)->delete();
-            $this->success('删除成功',U('Reservation/index',array('token'=>session('token'))));
-             exit;
-         }else{
-            $this->error('非法操作！');
-             exit;
-         }
-    }
-
-    public function manage(){
-        $t_reservebook = M('Reservebook');
-        $rid = (int)$this->_get('id');
-        //预约类型，根据addtype类型判断
-        $addtype = strval($this->_get('addtype'));
-        if($addtype == 'drive'){
-            $where = array('token'=>session('token'),'rid'=>$rid,'type'=>$addtype);
-        }elseif($addtype =='maintain'){
-            $where = array('token'=>session('token'),'rid'=>$rid,'type'=>$addtype);
-        }else{ //保持在最后
-            $where = array('token'=>session('token'),'rid'=>$rid,'type'=>'house_book');
-        }
-
-       // $books = $t_reservebook->where($where)->select();
-        $count      = $t_reservebook->where($where)->count();
-        $Page       = new Page($count,12);
-        $show       = $Page->show();
-        $books = $t_reservebook->where($where)->limit($Page->firstRow.','.$Page->listRows)->select(); 
-        $this->assign('page',$show);
-        //var_dump($books);
-        $this->assign('books',$books);
-        $this->assign('count',$t_reservebook->count());
-        $this->assign('ok_count',$t_reservebook->where('remate=1')->count());
-        $this->assign('lose_count',$t_reservebook->where('remate=2')->count());
-        $this->assign('call_count',$t_reservebook->where('remate=0')->count());
+        $count = $db->where($where)->count();
+        $page = new Page($count, 25);
+        $list = $db->where($where)->limit($page->firstRow.','.$page->listRows)->order('id desc')->select();
+        $this->assign('page', $page->show());
+        $this->assign('list', $list);
         $this->display();
     }
 
-    public function reservation_uinfo(){
-        $id = $this->_get('id');
-        $token = $this->_get('token');
-        $where = array('id'=>$id,'token'=>$token);
-        $t_reservebook = M('Reservebook');
-        $userinfo = $t_reservebook->where($where)->find();
-        $this->assign('userinfo',$userinfo);
-       // var_dump($userinfo);
-        if(IS_POST){
-            //var_dump($_POST);
-            $id = $this->_post('id');
-            $token = session('token');
-            $where =  array('id'=>$id,'token'=>$token);
-            $ok = $t_reservebook->where($where)->save($_POST);
-            if($ok){
-                $this->assign('ok',1);
-                //$this->success('成功',U('Reservation/manage',array('token'=>session('token'))));
-            }else{
-                     $this->assign('ok',2);
-            }
-
-        }
-        $this->display();
-
-
-    }
-
-    public function manage_del(){
-
-        $id = $this->_get('id');
-        $t_reservebook = M('Reservebook');
-        $where = array('id'=>$id,'token'=>$this->_get('token'));
-        $check  = $t_reservebook->where($where)->find();
-        $car = $this->_get('car');
-        if(!empty($check)){
-            $t_reservebook->where(array('id'=>$check['id']))->delete();
-            if($car == 'car'){
-                $this->success('删除成功',U('Car/reservation',array('token'=>session('token'))));
-                exit;
-            }else{
-                $this->success('删除成功',U('Reservation/index',array('token'=>session('token'))));
-                exit;
-            }
-            
-        }else{
-            $this->error('非法操作！');
+    public function get_code(){
+        $where = array('id' => $this -> _get('id', 'intval'), 'token' => session('token'));
+        $GetDb = M('Recognition');
+        $recognition = $GetDb -> where($where) -> field('id') -> find();
+        if($recognition == false) $this -> error('非法操作');
+        $api = M('Diymen_set') -> where(array('token' => session('token'))) -> find();
+        if($api['appid'] == false || $api['appsecret'] == false){
+            $this -> error('必须先填写【AppId】【 AppSecret】');
             exit;
         }
+        $url_get = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' . $api['appid'] . '&secret=' . $api['appsecret'];
+        $json = json_decode($this->curlGet($url_get));
+        $qrcode_url = 'https://api.weixin.qq.com/cgi-bin/qrcode/create?access_token=' . $json -> access_token;
+        $data['action_name'] = 'QR_LIMIT_SCENE';
+        $data['action_info']['scene']['scene_id'] = $recognition['id'];
+        $post = $this->api_notice_increment($qrcode_url, json_encode($data));
+        if($post == false) $this->error('微信接口返回信息错误，请联系管理员');
+        $update = $GetDb->where(array_merge(array('id' => $recognition['id']), $where)) -> save(array('code_url' => $post));
+        if($update){
+            $this->success('获取成功');
+        }else{
+            $this->error('操作失败');
+        }
     }
-
-     
-
-    public  function total(){
-        $this->display();
+    public function del(){
+        $data = D('Recognition');
+        $where['id'] = $this -> _get('id', 'intval');
+        if($where['id'] == false) $this -> error('非法操作');
+        $where['token'] = $this -> token;
+        $back = $data -> where($where) -> delete();
+        if($back){
+            D('Recognition_group_list')->where(array('rid'=>$where['id']))->delete();
+            $this->success('操作成功');
+        }else{
+            $this->error('操作失败');
+        }
     }
-
-
-}?>
+    public function status(){
+        $data = D('Recognition');
+        $where['id'] = $this -> _get('id', 'intval');
+        if($where['id'] == false) $this -> error('非法操作');
+        $where['token'] = session('token');
+        $type = $this -> _get('type', 'intval');
+        if($type == 0){
+            $back = $data -> where($where) -> setInc('status');
+        }else{
+            $back = $data -> where($where) -> setDec('status');
+        }
+        if($back == false){
+            $this -> error('操作失败');
+        }else{
+            $this -> success('操作成功');
+        }
+    }
+    function api_notice_increment($url, $data){
+        $ch = curl_init();
+        $header = "Accept-Charset: utf-8";
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; MSIE 5.01; Windows NT 5.0)');
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_AUTOREFERER, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $tmpInfo = curl_exec($ch);
+        if ($errorno){
+            return array('rt' => false, 'errorno' => $errorno);
+        }else{
+            $js = json_decode($tmpInfo, 1);
+            return $js['ticket'];
+        }
+    }
+    function curlGet($url){
+        $ch = curl_init();
+        $header = "Accept-Charset: utf-8";
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "GET");
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; MSIE 5.01; Windows NT 5.0)');
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_AUTOREFERER, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $temp = curl_exec($ch);
+        return $temp;
+    }
+}
+?>

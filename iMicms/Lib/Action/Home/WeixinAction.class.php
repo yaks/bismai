@@ -6,161 +6,173 @@ class WeixinAction extends Action{
 	private $my='比斯迈';
 
 	public function index(){
-	        $this->token = $this->_get('token');
-        	$this->my = C('site_my');
-//Log::record('weixinmsg',Log::DEBUG);
-//Log::record('weixinmsg',$this->token,Log::DEBUG);
-//Log::save();
-     	   	//$this->siteName = C('site_name');
-      		 $weixin = new Wechat($this->token);
-			//$data = $weixin->request();
-    	    	//$this->xml = $weixin->xml;
-       		 $this->data = $weixin->request();
+		$this->token = $this->_get('token');
+		$this->my = C('site_my');
+		//Log::record('weixinmsg',Log::DEBUG);
+		//Log::record('weixinmsg',$this->token,Log::DEBUG);
+		//Log::save();
+		//$this->siteName = C('site_name');
+		$weixin = new Wechat($this->token);
+		//$data = $weixin->request();
+		//$this->xml = $weixin->xml;
+		$this->data = $weixin->request();
 
-        	//是否是在上墙中
-    	    if($this->data){
-        	    $data = $this->data;
-            	$users = S($data['FromUserName'] . 'wxq');
-            	if($users != false){
-                	$res = $this->wxq($users);
-         	   }else{
-                	$res = $this->reply($data);
-            	}
-           	 list($content, $type) = $res;
-            	$weixin->response($content, $type);
- 	       }
-	    }
+		//是否是在上墙中
+		if($this->data){
+			$data = $this->data;
+			$users = S($data['FromUserName'] . 'wxq');
+			if($users != false){
+				$res = $this->wxq($users);
+			}else{
+				$res = $this->reply($data);
+			}
+			list($content, $type) = $res;
+			$weixin->response($content, $type);
+		}
+	}
 
-	private function reply($data) 
-
-	{
+	private function reply($data) {
 		M('Wxuser_message')->add($data);
-	
-	       //if($data['Location_X']){
-			 
-				 
-				//return $this->map($data['Location_X'],$data['Location_Y']);
+		//if($data['Location_X']){
+		//return $this->map($data['Location_X'],$data['Location_Y']);
 		//}
-		if('CLICK' == $data['Event']){		
+		if('CLICK' == $data['Event']){
 			$data['Content']= $data['EventKey'];
 		}
-	    if('voice' == $data['MsgType']){
+		if('voice' == $data['MsgType']){
             $data['Content'] = $data['Recognition'];
-            $this -> data['Content'] = $data['Recognition'];
+            $this->data['Content'] = $data['Recognition'];
         }
         if($data['Event'] == 'SCAN'){
-            $data['Content'] = $this -> getRecognition($data['EventKey']);
-            $this -> data['Content'] = $data['Content'];
-        }
-		 
-		if('subscribe' == $data['Event']){
-            $this->requestdata('follownum');
-			$data=M('Areply')->field('home,keyword,content')->where(array('token'=>$this->token))->find();
-			if($data['keyword']=='首页'||$data['keyword']=='home'){
-				return $this->shouye();
-			}
-			if($data['keyword']=='投票'||$data['keyword']=='vote'){
-				return $this->vote();
-			}
-			if($data['keyword']=='酒店'||$data['keyword']=='hotel'){
-				return $this->hotel();
-			}
-			if($data['keyword']=='刮刮'||$data['keyword']=='刮刮卡'){
-				return $this->guaguaka();
-			}
-			if($data['keyword']=='微房产'||$data['keyword']=='房产'){
-				return $this->house();
-			}
-			if (substr($data['keyword'],0,3) == 'yyy') {
-				$yyy = M('Shake')->where(array(
-					'isopen' => '1',
-					'token' => $this->token
-				))->find();
-				if ($yyy == false) {
-					return array(
-						'目前没有正在进行中的摇一摇活动',
-						'text'
-					);
-				}
-				$url = C('site_url') . U('Wap/shakedo/index', array(
-					'token' => $this->token,
-					'phone' => substr($data['keyword'],3,11),
-					'wecha_id' => $this->data['FromUserName']
-                ));
-				return array(
-					'<a href="{$url}">点击进入刺激的现场摇一摇活动</a>',
-					'text'
-                );
+            $data['Content'] = $this->getRecognition($data['EventKey']);
+            if(!$data['Content']){
+                $other = M('Other')->where(array('token'=>$this->token))->find();
+				return array($other['info'], 'text');
             }
-			if($data['home']==1){				
+            else{
+				$this->data['Content'] = $data['Content'];
+            }
+        }
+
+		if('subscribe' == $data['Event']){
+            $data['Content'] = $this->getSubscriber($data['EventKey']);
+
+            if($data['Content']){
+                $this->data['Content'] = $data['Content'];
+            }
+            else{
+                $this->requestdata('follownum');
+                $data=M('Areply')->field('home,keyword,content')->where(array('token'=>$this->token))->find();
+                if($data['keyword']=='首页'||$data['keyword']=='home'){
+                    return $this->shouye();
+                }
+                if($data['keyword']=='投票'||$data['keyword']=='vote'){
+                    return $this->vote();
+                }
+                if($data['keyword']=='酒店'||$data['keyword']=='hotel'){
+                    return $this->hotel();
+                }
+                if($data['keyword']=='刮刮'||$data['keyword']=='刮刮卡'){
+                    return $this->guaguaka();
+                }
+                if($data['keyword']=='微房产'||$data['keyword']=='房产'){
+                    return $this->house();
+                }
+                if (substr($data['keyword'],0,3) == 'yyy') {
+                    $yyy = M('Shake')->where(array(
+                        'isopen' => '1',
+                        'token' => $this->token
+                        ))->find();
+                    if ($yyy == false) {
+                        return array(
+                            '目前没有正在进行中的摇一摇活动',
+                            'text'
+                            );
+                    }
+                    $url = C('site_url') . U('Wap/shakedo/index', array(
+                        'token' => $this->token,
+                        'phone' => substr($data['keyword'],3,11),
+                        'wecha_id' => $this->data['FromUserName']
+                        ));
+                    return array(
+                        '<a href="{$url}">点击进入刺激的现场摇一摇活动</a>',
+                        'text'
+                        );
+                }
+                if($data['home']==1){
 			//	$like['keyword']=array('like','%'.$data['keyword'].'%');
 				$like['keyword']=array('eq',$data['keyword']);
 				$like['token']=$this->token;
 				$back=M('Img')->field('id,text,pic,url,title')->limit(9)->order('id desc')->where($like)->select();
 					foreach($back as $keya=>$infot){
 						if($infot['url']!=false){
-							 if(stristr($infot['url'],'?')){
+							if(stristr($infot['url'],'?')){
 							$url=(strip_tags(htmlspecialchars_decode($infot['url'])).'&iMicms=mp.weixin.qq.com');
 							}
-							else 
-							{ 
+							else {
 							$url=$infot['url'].'?iMicms=mp.weixin.qq.com';
 							}
 						}else{
 							$url=rtrim(C('site_url'),'/').U('Wap/Index/content',array('token'=>$this->token,'id'=>$infot['id'],'wecha_id'=>$this->data['FromUserName'],'iMicms'=>'mp.weixin.qq.com'));
 						}
-						
-						 if(stristr($infot['pic'],"http:")) $purl = $infot['pic'];
-                                                  else 	$purl= rtrim(C('site_url'),'/').$infot['pic'];
-						
+
+						if(stristr($infot['pic'],"http:"))
+							$purl = $infot['pic'];
+						else
+							$purl= rtrim(C('site_url'),'/').$infot['pic'];
+
 						$return[]=array($infot['title'],$infot['text'],$purl,$url);
 					}
-					 
 					return array($return,'news');
-			}else{ 
-				return array(strip_tags(htmlspecialchars_decode($data['content'])),'text');
+				}
+                else{
+                    return array(strip_tags(htmlspecialchars_decode($data['content'])),'text');
+                }
 			}
-		}
-//取消关注时
-        elseif ('unsubscribe' == $data['Event']) {
+        }
+		//取消关注时
+        if ('unsubscribe' == $data['Event']) {
             $this->requestdata('unfollownum');
-        }		
-		$Pin       = new GetPin();
-		if(substr($data['Content'],0,3)=="yyy")
-		{$key       ="摇一摇";
-		$yyyphone  =substr($data['Content'],3,11);}
-		else
-		$key=$data['Content'];
+        }
+
+		$Pin = new GetPin();
+		if(substr($data['Content'],0,3)=="yyy") {
+			$key ="摇一摇";
+			$yyyphone  =substr($data['Content'],3,11);
+		}
+		else{
+			$key=$data['Content'];
+		}
 		$open=M('Token_open')->where(array('token'=>$this->_get('token')))->find();
 		$this->fun=$open['queryname'];
-		$datafun=explode(',',$open['queryname']);	
-        	
-		$tags=$this->get_tags($key);		
+		$datafun=explode(',',$open['queryname']);
+
+		$tags=$this->get_tags($key);
 		$back= explode(',',$tags);
-		foreach($back as $keydata=>$data){		
-			 $string=$Pin->Pinyin($data);			 
-			 
-			 if(in_array($string,$datafun)){
+		foreach($back as $keydata=>$data){
+			$string=$Pin->Pinyin($data);
+			if(in_array($string,$datafun)){
 					$check=$this->user('connectnum');
-					
+
 					if ($string == 'fujin') {
-                                         $this->recordLastRequest($key);
-                                         }
-					 $this->requestdata('textnum');
+						$this->recordLastRequest($key);
+                    }
+					$this->requestdata('textnum');
 					if($check['connectnum']!=1){
 						$return=C('connectout');
 						continue;
 					}
-					unset($back[$keydata]);				
-					eval('$return= $this->'.$string.'($back);');					
+					unset($back[$keydata]);
+					eval('$return= $this->'.$string.'($back);');
 					continue;
-				 }
+			}
 		}
+
 		if(!empty($return)){
 			if(is_array($return)){
 				return $return;
 			}else{
-				return array($return,'text');				
+				return array($return,'text');
 			}
 		} else {
             if ($this->data['Location_X']) {
@@ -686,6 +698,35 @@ class WeixinAction extends Action{
                         'news'
                     );
                     break;
+				case 'Wreservation':
+                    $this->requestdata('other');
+                    $back = M('Wreservation')->limit(9)->order('sorts desc')->where($like)->select();
+                    $ids = array();
+                    foreach ($back as $keya => $infot) {
+                    	$ids[] = $infot['id'];
+                        $url = rtrim(C('site_url'), '/') . U('Wap/Wreservation/index', array(
+                            'token' => $this->token,
+                            'id' => $infot['id'],
+                            'wecha_id' => $this->data['FromUserName'],
+                            'from' => 'event'
+                        ));
+                        $return[] = array(
+                            $infot['title'],
+                            $infot['text'],
+                            $infot['pic'],
+                            $url
+                        );
+                    }
+                    $idsWhere = array('in',$ids);
+                    if ($back) {
+                        M('Wreservation')->where($idsWhere)->setInc('click');
+                    }
+                    
+                    return array(
+                        $return,
+                        'news'
+                    );
+                    break;
 				case 'Text':
 				        $this->requestdata('textnum');
 					$info=M($data['module'])->order('id desc')->find($data['pid']);
@@ -962,7 +1003,7 @@ class WeixinAction extends Action{
                     }
                 }
             }
-			$this -> selectService();
+			$this->selectService();
             return array(
                 $this->chat($key),
                 'text'
@@ -1611,39 +1652,40 @@ if($id == false){
     $mysql -> save($data);
 }
 }
-function selectService(){
-$this -> behaviordata('chat', '');
-$time = time() - (30 * 60);
-$where['token'] = $this -> token;
-$serviceUser = M('Service_user') -> field('id') -> where('`token` = "' . $this -> token . '" and `status` = 0 and `endJoinDate` > ' . $time) -> select();
-if($serviceUser != false){
-    $list = M('wechat_group_list') -> field('id') -> where(array('openid' => $this -> data['FromUserName'])) -> find();
-    if($list == false){
-        $this -> adddUserInfo();
-    }
-    $serviceJoinDate = M('wehcat_member_enddate') -> field('id,uid,joinUpDate') -> where(array('token' => $this -> token, 'openid' => $this -> data['FromUserName'])) -> find();
-    if($serviceJoinDate['uid'] == false){
-        foreach($serviceUser as $key => $users){
-            $user[] = $users['id'];
-        }
-        if(count($user) == 1){
-            $id = $user[0];
-        }else{
-            $rand = mt_rand(0, count($user)-1);
-            $id = $user[$rand];
-        }
-        $where['id'] = $serviceJoinDate['id'];
-        $where['uid'] = $id;
-        M('wehcat_member_enddate') -> data($where) -> save();
-    }else{
-        $endtime = 30 * 60;
-        $now = $time - $serviceJoinDate['joinUpDate'];
-        if($now < $endtime){
-            exit();
-        }
-    }
-}
-}
+	function selectService(){
+		$this->behaviordata('chat', '');
+		$time = time() - (30 * 60);
+		$where['token'] = $this->token;
+		$serviceUser = M('Service_user')->field('id')->where('`token`="'.$this->token.'" and `status` = 0 and `endJoinDate` > '.$time)->select();
+
+		if($serviceUser != false){
+			$list = M('wechat_group_list')->field('id')->where(array('openid'=>$this->data['FromUserName']))->find();
+			if($list == false){
+				$this->adddUserInfo();
+			}
+			$serviceJoinDate = M('wehcat_member_enddate')->field('id,uid,joinUpDate')->where(array('token'=>$this->token,'openid'=>$this->data['FromUserName']))->find();
+			if($serviceJoinDate['uid'] == false){
+				foreach($serviceUser as $key => $users){
+					$user[] = $users['id'];
+				}
+				if(count($user) == 1){
+					$id = $user[0];
+				}else{
+					$rand = mt_rand(0, count($user)-1);
+					$id = $user[$rand];
+				}
+				$where['id'] = $serviceJoinDate['id'];
+				$where['uid'] = $id;
+				M('wehcat_member_enddate')->data($where)->save();
+			}else{
+				$endtime = 30 * 60;
+				$now = $time - $serviceJoinDate['joinUpDate'];
+				if($now < $endtime){
+					exit();
+				}
+			}
+		}
+	}
 	function baike($name){
 		$name=implode('',$name);
 		if($name=='sjtftx'){return '世界上最牛B的微信营销系统，两天前被腾讯收购，当然这只是一个笑话';}
@@ -1663,16 +1705,16 @@ if($serviceUser != false){
 			return "抱歉，没有找到与“".$name."”相关的百科结果。";
 		}
 	}
-function getRecognition($id){
-$GetDb = D('Recognition');
-$data = $GetDb -> field('keyword') -> where(array('id' => $id, 'status' => 0)) -> find();
-if($data != false){
-    $GetDb -> where(array('id' => $id)) -> setInc('attention_num');
-    return $data['keyword'];
-}else{
-    return false;
-}
-}
+// function getRecognition($id){
+// $GetDb = D('Recognition');
+// $data = $GetDb -> field('keyword') -> where(array('id' => $id, 'status' => 0)) -> find();
+// if($data != false){
+//     $GetDb -> where(array('id' => $id)) -> setInc('attention_num');
+//     return $data['keyword'];
+// }else{
+//     return false;
+// }
+// }
 function api_notice_increment($url, $data){
 $ch = curl_init();
 $header = "Accept-Charset: utf-8";
@@ -1720,20 +1762,20 @@ if (curl_errno($ch)){
 		return $output;
 	}
  function adddUserInfo(){
-$access_token = $this -> _getAccessToken();
-$url2 = 'https://api.weixin.qq.com/cgi-bin/user/info?openid=' . $this -> data['FromUserName'] . '&access_token=' . $access_token;
-$classData = json_decode($this -> curlGet($url2));
-if ($classData -> subscribe == 1){
-    $data['nickname'] = str_replace("'", '', $classData -> nickname);
-    $data['sex'] = $classData -> sex;
-    $data['city'] = $classData -> city;
-    $data['province'] = $classData -> province;
-    $data['headimgurl'] = $classData -> headimgurl;
-    $data['subscribe_time'] = $classData -> subscribe_time;
-    $url3 = 'https://api.weixin.qq.com/cgi-bin/groups/getid?access_token=' . $access_token;
-    $json2 = json_decode($this -> curlGet($url3, 'post', '{"openid":"' . $data['openid'] . '"}'));
-    $data['g_id'] = $json -> groupid;
-    M('wechat_group_list') -> data($data) -> add();
+$access_token = $this->_getAccessToken();
+$url2 = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.$this->data['FromUserName'].'&access_token='.$access_token;
+$classData = json_decode($this->curlGet($url2));
+if ($classData->subscribe == 1){
+    $data['nickname'] = str_replace("'", '', $classData->nickname);
+    $data['sex'] = $classData->sex;
+    $data['city'] = $classData->city;
+    $data['province'] = $classData->province;
+    $data['headimgurl'] = $classData->headimgurl;
+    $data['subscribe_time'] = $classData->subscribe_time;
+    $url3 = 'https://api.weixin.qq.com/cgi-bin/groups/getid?access_token='.$access_token;
+    $json2 = json_decode($this->curlGet($url3, 'post', '{"openid":"'.$data['openid'].'"}'));
+    $data['g_id'] = $json->groupid;
+    M('wechat_group_list')->data($data)->add();
 }
 }
 function _getAccessToken(){
@@ -1945,4 +1987,110 @@ return $temp;
         return $link;
     }
 	 
+    /* 140909 */
+    function get_access_token($isCache=true){
+        $wxid = $this->data['ToUserName'];
+        $access_token = cache($wxid.'weixin_access_token');
+        if($access_token && $isCache) {
+            return $access_token;
+        }
+        else {
+            $where = array('wxid'=>$wxid);
+            $wxUser = M('Wxuser')->where($where)->find();
+            $url_get = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='.$wxUser['appid'].'&secret='.$wxUser['appsecret'];
+
+            $ch1 = curl_init();
+            $timeout = 5;
+            curl_setopt($ch1, CURLOPT_URL, $url_get);
+            curl_setopt($ch1, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch1, CURLOPT_CONNECTTIMEOUT, $timeout);
+            curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, FALSE);
+            curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+            $accesstxt = curl_exec($ch1);
+            curl_close ($ch1);
+
+            $access = json_decode($accesstxt, true);
+            if (!$access->errmsg){
+                cache($wxid.'weixin_access_token', $access['access_token'], $access['expires_in']);
+                return $access['access_token'];
+            }else{
+            	return false;
+            }
+        }
+    }
+    function getRecognition($id){
+        $GetDb = D('Recognition');
+        $GetDbData = $GetDb->field('keyword')->where(array('id'=>$id, 'status'=>0))->find();
+        if($GetDbData){
+            // $GetDb->where(array('id' => $id))->setInc('attention_num');
+            $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token());
+            $classData = json_decode($this->curlGet($url));
+            if($classData->errcode){
+            	$url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token(false));
+            	$classData = json_decode($this->curlGet($url));
+            }
+
+            if ($classData->subscribe == 1){
+                $data['openid'] = $classData->openid;
+                $data['rid'] = $id;
+                $data['nickname'] = str_replace("'", '', $classData->nickname);
+                $data['sex'] = $classData->sex;
+                $data['city'] = $classData->city;
+                $data['province'] = $classData->province;
+                $data['headimgurl'] = $classData->headimgurl;
+                // $data['subscribe_time'] = $classData->subscribe_time;
+                $data['last_time'] = time();
+
+                $listDb = D('Recognition_group_list');
+                $where['rid'] = $id;
+                $where['openid'] = $classData->openid;
+                $user = $listDb->where($where)->find();
+                if($user){
+                    $data['attention_num'] = $user['attention_num']+1;
+                    $listDb->where(array('id'=>$user['id']))->save($data);
+                }
+                else {
+                    $data['attention_num'] = 1;
+                    $listDb->add($data);
+                }
+            }
+            return $GetDbData['keyword'];
+        }else{
+            return false;
+        }
+    }
+
+    function getSubscriber($EventKey){
+        $id = (int)str_replace('qrscene_', '', $EventKey);
+        $GetDb = D('Recognition');
+        $GetDbData = $GetDb->field('keyword')->where(array('id'=>$id, 'status'=>0))->find();
+        if($GetDbData){
+            $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token());
+            $classData = json_decode($this->curlGet($url));
+            if($classData->errcode){
+                $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token(false));
+                $classData = json_decode($this->curlGet($url));
+            }
+
+            if ($classData->subscribe == 1){
+                $data['openid'] = $classData->openid;
+                $data['rid'] = $id;
+                $data['nickname'] = str_replace("'", '', $classData->nickname);
+                $data['sex'] = $classData->sex;
+                $data['city'] = $classData->city;
+                $data['province'] = $classData->province;
+                $data['headimgurl'] = $classData->headimgurl;
+                $data['subscribe_time'] = $classData->subscribe_time;
+                $data['last_time'] = time();
+                $data['attention_num'] = 1;
+
+                $listDb = D('Recognition_group_list');
+                $listDb->add($data);
+            }
+            return $GetDbData['keyword'];
+        }else{
+            return false;
+        }
+    }
+
 }
