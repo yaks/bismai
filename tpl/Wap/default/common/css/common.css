@@ -13,7 +13,7 @@ footer .weimob-copyright{
     color:#000;}
 footer a{color:#000!important; font-size:12px;}
 .weimob-page{
-    min-height: 100%;
+    min-height: 1%;
     padding-bottom: 70px;
     -webkit-box-sizing: border-box;
     word-wrap: break-word;
@@ -301,6 +301,7 @@ footer a{color:#000!important; font-size:12px;}
 .plug-menu:checked{
 	-webkit-transform:rotate(135deg);
 }
+
 
 .plug-phone>div {
 	width:32px;

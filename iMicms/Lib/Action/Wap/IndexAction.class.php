@@ -377,9 +377,9 @@ class IndexAction extends BaseAction{
 		
 		$this->assign('gtoken',$this->_get('token'));
 		$this->assign('mb',$mb['mobile']);
-		$this->assign('plugmenu',$list);
-		$this->assign('plugmenu2',$list2);
-		$this->assign('plugmenu3',$list3);
+		#$this->assign('plugmenu',$list);
+		#$this->assign('plugmenu2',$list2);
+		#$this->assign('plugmenu3',$list3);
 		$this->assign('flash',$flash);
 		$this->assign('sid',$ssid['id']);
         $this->assign('wechat_id',$this->wecha_id);

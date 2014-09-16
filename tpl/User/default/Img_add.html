@@ -52,9 +52,9 @@ items : [
                 <TR>
                   <TH style="width:120px" valign="top"><label for="keyword">关键词：</label></TH>
                   <TD><input type="input" class="px" id="keyword" value=""  name="keyword" style="width:580px;"><br />
-                  多个关键词请用空格格开：例如: 美丽&nbsp;漂亮&nbsp;好看 </TD>
+                  如需不同关键词回复同一信息，请使用不同关键词一一建立相同的图文素材 </TD>
                 </TR>
-                 <TR>
+                 <TR style="display:none;">
   <TH valign="top">关键词类型：</TH>
   <TD><label for="radio1"><input id="radio1"  type="radio" name="type" value="2"  checked="checked"    > 完全匹配  用户输入的和此关键词一样才会触发!</label><br /><label for="radio2"><input  id="radio2" type="radio" name="type" value="1"   > 包含匹配 (只要用户输入的文字包含本关键词就触发!v2用户才生效)</label></TD>
 </TR>
@@ -89,7 +89,7 @@ items : [
 						<div class="controls">
 						<img id="thumb_img" src="{iMicms:$info.pic}" style="max-height:100px;" />
 						<input type="hidden" id="thumb"  name="pic" value="{iMicms:$info.pic}" class="input-xlarge"  data-rule-required="true" data-rule-url="true" />
-                        <span class="help-inline"><a class="btn" id="insertimage">选择封面</a>（尺寸：宽720像素，高400像素） 小于500k;</span>
+                        <span class="help-inline"><a class="btn" id="insertimage">选择封面</a>（置顶封面图片尺寸：宽720像素，高400像素） 小于500k，后续排列封面图片尺寸：宽200像素，高200像素，同一关键词排序规则最大的在最上面作为置顶封面显示;</span>
 				        </div>
                   </div></TD>
                 </TR>

@@ -28,20 +28,19 @@ class WeixinAction extends Action
                 $res = $this->reply($data);
             }
             list($content, $type) = $res;
+
             $weixin->response($content, $type);
         }
     }
-    
+
     private function reply($data)
     {
-#	Log::write(json_encode($data)); 
-	M('Wxuser_message')->add($data);
-        
+#   Log::write(json_encode($data)); 
+    M('Wxuser_message')->add($data);
         //if($data['Location_X']){
-        
-        
         //return $this->map($data['Location_X'],$data['Location_Y']);
         //}
+        
         if ('CLICK' == $data['Event']) {
             $data['Content'] = $data['EventKey'];
         }
@@ -50,11 +49,19 @@ class WeixinAction extends Action
             $this->data['Content'] = $data['Recognition'];
         }
         if ($data['Event'] == 'SCAN') {
-            $data['Content']       = $this->getRecognition($data['EventKey']);
-            $this->data['Content'] = $data['Content'];
+            $data['Content'] = $this->getRecognition($data['EventKey']);
+            if(!$data['Content']){
+                $other = M('Other')->where(array('token'=>$this->token))->find();
+                return array($other['info'], 'text');
+            }
+            else{
+                $this->data['Content'] = $data['Content'];
+            }
         }
         
         if ('subscribe' == $data['Event']) {
+            $data['Content'] = $this->getSubscriber($data['EventKey']); 
+
             $this->requestdata('follownum');
             $data = M('Areply')->field('home,keyword,content')->where(array('token' => $this->token))->find();
             if ($data['keyword'] == '首页' || $data['keyword'] == 'home') {
@@ -66,7 +73,7 @@ class WeixinAction extends Action
    
             
             if ($data['home'] == 1) {
-                //	$like['keyword']=array('like','%'.$data['keyword'].'%');
+                //  $like['keyword']=array('like','%'.$data['keyword'].'%');
                 $like['keyword'] = array(
                     'eq',
                     $data['keyword']
@@ -230,7 +237,24 @@ class WeixinAction extends Action
                     break;
                 case '会员':
                     return $this->member();
-                    break;                
+                    break;
+                case '您好':
+                case '你好':
+                case '在吗':
+                case '有人吗':
+                case '微客服':
+                    //回复多客服消息
+                    // return array(
+                    //     $key,
+                    //     'transfer_customer_service'
+                    // );
+                    return array(
+                        array(
+                            $key
+                            ),
+                        'transfer_customer_service'
+                        );
+                    break;
                 default:
                     $check = $this->user('diynum');
                     if ($check['diynum'] != 1) {
@@ -243,7 +267,21 @@ class WeixinAction extends Action
             }
         }
     }
-    
+
+
+    //回复多客服消息
+    function transmitService($object) {
+        $xmlTpl = "<xml>
+            <ToUserName><![CDATA[%s]]></ToUserName>
+            <FromUserName><![CDATA[%s]]></FromUserName>
+            <CreateTime>%s</CreateTime>
+            <MsgType><![CDATA[transfer_customer_service]]></MsgType>
+            </xml>";
+        $result = sprintf($xmlTpl, $object->FromUserName, $object->ToUserName, time());
+        return $result;
+    }
+
+
     function companyMap()
     {
         import("Home.Action.MapAction");
@@ -251,11 +289,11 @@ class WeixinAction extends Action
         return $mapAction->staticCompanyMap();
     }
     /*
-    function shenhe($name){	
-    $name=implode('',$name);		
+    function shenhe($name){ 
+    $name=implode('',$name);        
     if(empty($name)){
     return '正确的审核帐号方式是：审核+帐号';
-    }else{			
+    }else{          
     $user=M('Users')->field('id')->where(array('username'=>$name))->find();
     if($user==false){
     return $this->my."提醒您,您还没注册吧\n正确的审核帐号方式是：审核+帐号,不含+号";
@@ -348,7 +386,7 @@ class WeixinAction extends Action
     
     function keyword($key)
     {
-        #		$like['keyword']=array('like','%'.$key.'%');
+        #       $like['keyword']=array('like','%'.$key.'%');
         Log::write($key);
         $like['keyword'] = array(
             'eq',
@@ -420,7 +458,7 @@ class WeixinAction extends Action
                     $back = M('Wreservation')->limit(9)->order('sorts desc')->where($like)->select();
                     $ids = array();
                     foreach ($back as $keya => $infot) {
-                    	$ids[] = $infot['id'];
+                        $ids[] = $infot['id'];
                         $url = rtrim(C('site_url'), '/') . U('Wap/Wreservation/index', array(
                             'token' => $this->token,
                             'id' => $infot['id'],
@@ -968,22 +1006,21 @@ class WeixinAction extends Action
         }
     }
 
-    function getRecognition($id)
-    {
-        $GetDb = D('Recognition');
-        $data  = $GetDb->field('keyword')->where(array(
-            'id' => $id,
-            'status' => 0
-        ))->find();
-        if ($data != false) {
-            $GetDb->where(array(
-                'id' => $id
-            ))->setInc('attention_num');
-            return $data['keyword'];
-        } else {
-            return false;
-        }
-    }
+    // function getRecognition($id) {
+    //     $GetDb = D('Recognition');
+    //     $data  = $GetDb->field('keyword')->where(array(
+    //         'id' => $id,
+    //         'status' => 0
+    //     ))->find();
+    //     if ($data != false) {
+    //         $GetDb->where(array(
+    //             'id' => $id
+    //         ))->setInc('attention_num');
+    //         return $data['keyword'];
+    //     } else {
+    //         return false;
+    //     }
+    // }
     function api_notice_increment($url, $data)
     {
         $ch     = curl_init();
@@ -1156,5 +1193,108 @@ class WeixinAction extends Action
         }
         return $link;
     }
-    
+     /* 140909 */
+    function get_access_token($isCache=true){
+        $wxid = $this->data['ToUserName'];
+        $access_token = cache($wxid.'weixin_access_token');
+        if($access_token && $isCache) {
+            return $access_token;
+        }
+        else {
+            $where = array('wxid'=>$wxid);
+            $wxUser = M('Wxuser')->where($where)->find();
+            $url_get = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='.$wxUser['appid'].'&secret='.$wxUser['appsecret'];
+
+            $ch1 = curl_init();
+            $timeout = 5;
+            curl_setopt($ch1, CURLOPT_URL, $url_get);
+            curl_setopt($ch1, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch1, CURLOPT_CONNECTTIMEOUT, $timeout);
+            curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, FALSE);
+            curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+            $accesstxt = curl_exec($ch1);
+            curl_close ($ch1);
+
+            $access = json_decode($accesstxt, true);
+            if (!$access->errmsg){
+                cache($wxid.'weixin_access_token', $access['access_token'], $access['expires_in']);
+                return $access['access_token'];
+            }else{
+                return false;
+            }
+        }
+    }
+    function getRecognition($id){
+        $GetDb = D('Recognition');
+        $GetDbData = $GetDb->field('keyword')->where(array('id'=>$id, 'status'=>0))->find();
+        if($GetDbData){
+            // $GetDb->where(array('id' => $id))->setInc('attention_num');
+            $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token());
+            $classData = json_decode($this->curlGet($url));
+            if($classData->errcode){
+                $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token(false));
+                $classData = json_decode($this->curlGet($url));
+            }
+            if ($classData->subscribe == 1){
+                $data['openid'] = $classData->openid;
+                $data['rid'] = $id;
+                $data['nickname'] = str_replace("'", '', $classData->nickname);
+                $data['sex'] = $classData->sex;
+                $data['city'] = $classData->city;
+                $data['province'] = $classData->province;
+                $data['headimgurl'] = $classData->headimgurl;
+                // $data['subscribe_time'] = $classData->subscribe_time;
+                $data['last_time'] = time();
+
+                $listDb = D('Recognition_group_list');
+                $where['rid'] = $id;
+                $where['openid'] = $classData->openid;
+                $user = $listDb->where($where)->find();
+                if($user){
+                    $data['attention_num'] = $user['attention_num']+1;
+                    $listDb->where(array('id'=>$user['id']))->save($data);
+                }
+                else {
+                    $data['attention_num'] = 1;
+                    $listDb->add($data);
+                }
+            }
+            return $GetDbData['keyword'];
+        }else{
+            return false;
+        }
+    }
+
+    function getSubscriber($EventKey){
+        $id = (int)str_replace('qrscene_', '', $EventKey);
+        $GetDb = D('Recognition');
+        $GetDbData = $GetDb->field('keyword')->where(array('id'=>$id, 'status'=>0))->find();
+        if($GetDbData){
+            $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token());
+            $classData = json_decode($this->curlGet($url));
+            if($classData->errcode){
+                $url = 'https://api.weixin.qq.com/cgi-bin/user/info?openid='.urlencode($this->data['FromUserName']).'&access_token='.urlencode($this->get_access_token(false));
+                $classData = json_decode($this->curlGet($url));
+            }
+            if ($classData->subscribe == 1){
+                $data['openid'] = $classData->openid;
+                $data['rid'] = $id;
+                $data['nickname'] = str_replace("'", '', $classData->nickname);
+                $data['sex'] = $classData->sex;
+                $data['city'] = $classData->city;
+                $data['province'] = $classData->province;
+                $data['headimgurl'] = $classData->headimgurl;
+                $data['subscribe_time'] = $classData->subscribe_time;
+                $data['last_time'] = time();
+                $data['attention_num'] = 1;
+
+                $listDb = D('Recognition_group_list');
+                $listDb->add($data);
+            }
+            return $GetDbData['keyword'];
+        }else{
+            return false;
+        }
+    }
+
 }

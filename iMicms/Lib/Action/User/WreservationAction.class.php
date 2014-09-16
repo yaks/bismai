@@ -34,7 +34,7 @@ class WreservationAction extends UserAction{
 		$where['id']=$this->_get('id','intval');
 		$where['uid']=session('uid');
 		if(D(MODULE_NAME)->where($where)->delete()){
-			M('Keyword')->where(array('pid'=>$id,'token'=>session('token'),'module'=>MODULE_NAME))->delete();
+			D('Keyword')->where(array('pid'=>$where['id'],'token'=>session('token'),'module'=>MODULE_NAME))->delete();
 			$this->success('操作成功',U(MODULE_NAME.'/index'));
 		}
 		else {

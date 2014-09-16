@@ -49,7 +49,7 @@
 
                             <div class="row-fluid dataTables_wrapper">
                                 <div class="alert">
-                                    <strong>温馨提示</strong>：尊敬的<font color="#FF0000" size="3">{iMicms:$userg['name']}</font>您有 <font color="#FF0000" size="3">{iMicms:$userinfo.gongzhongnum}</font> 个公众号配额，已经使用 <font color="#FF0000" size="3">{iMicms:$total}</font> 个！ 您的账号将于<font color="#FF0000" size="3">{iMicms:$thisUser.viptime|date="Y-m-d",###}</font>到期，请提前续费！<span class="line">{iMicms::C('site_name')}交流QQ①群（{iMicms::C('site_qq1')}）</span>
+                                    <strong>温馨提示</strong>：尊敬的<font color="#FF0000" size="3">{iMicms:$userg['name']}</font>您有 <font color="#FF0000" size="3">{iMicms:$userinfo.gongzhongnum}</font> 个公众号配额，已经使用 <font color="#FF0000" size="3">{iMicms:$total}</font> 个！ 您的账号将于<font color="#FF0000" size="3">{iMicms:$thisUser.viptime|date="Y-m-d",###}</font>到期，请提前续费！<span class="line">{iMicms::C('site_name')}客服QQ（{iMicms::C('site_qq1')}）</span>
                                 </div>
                                 <form method="post" action="" id="listForm">
                                     <table id="listTable" class="table table-hover table-nomargin table-bordered usertable dataTable">
@@ -89,13 +89,12 @@
                                                     <p>到期时间:{iMicms:$thisUser.viptime|date="Y-m-d",###}</p>
                                                 </td>
                                                 <td>
-                                                    <p>活动：{iMicms:$Think.session.activitynum}/{iMicms:$userinfo.activitynum}</p>
                                                     <p>图文：{iMicms:$thisUser.diynum}/{iMicms:$userinfo.diynum}</p>
                                                     <p>公众号个数：{iMicms:$total}/{iMicms:$userinfo.gongzhongnum}</p>
                                                 </td>
                                                 <td>
-                                                    <p>总请求数:<php>echo $_SESSION['connectnum']</php></p>
-                                                    <p>本月请求数:{iMicms:$userinfo.connectnum}</p>
+                                                    <p>总请求数:{iMicms:$userinfo.connectnum}</p>
+                                                    <p>本月请求数:<php>echo $_SESSION['connectnum']</php></p>
                                                 </td>
                                                 <td>
                                                     <p>请求数剩余：<php>echo ($userinfo['connectnum']-$_SESSION['connectnum']);</php></p>
